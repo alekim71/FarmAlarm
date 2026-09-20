@@ -8,6 +8,10 @@ backend/.env
 frontend/.env
 frontend/.env.local
 
+# Local SQLite DB
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
 # Build output
 frontend/dist/
 frontend/build/
