@@ -8,7 +8,8 @@ const config = {
   ACKNOWLEDGED:{ label: '확인됨', dot: 'bg-amber-400',   text: 'text-amber-400',   bg: 'bg-amber-400/10' },
   RESOLVED:    { label: '해결됨', dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-400/10' },
   URL:         { label: 'URL',    dot: 'bg-blue-400',    text: 'text-blue-400',    bg: 'bg-blue-400/10' },
-  HEARTBEAT:   { label: 'Heartbeat', dot: 'bg-purple-400', text: 'text-purple-400', bg: 'bg-purple-400/10' }
+  HEARTBEAT:   { label: 'Heartbeat',   dot: 'bg-purple-400', text: 'text-purple-400', bg: 'bg-purple-400/10' },
+  GOOGLE_REMOTE:{ label: '구글원격',  dot: 'bg-sky-400',    text: 'text-sky-400',    bg: 'bg-sky-400/10' }
 };
 
 export default function StatusBadge({ status }) {

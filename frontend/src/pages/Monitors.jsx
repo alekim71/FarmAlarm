@@ -5,7 +5,8 @@ import StatusBadge from '../components/StatusBadge';
 
 const emptyForm = {
   siteId: '', name: '', type: 'URL', url: '', agentId: '',
-  interval: 60, timeout: 10, expectedStatus: 200, errorPattern: ''
+  interval: 60, timeout: 10, expectedStatus: 200, errorPattern: '',
+  loginUser: '', loginPass: ''
 };
 
 function timeAgo(dateStr) {
@@ -38,7 +39,8 @@ export default function Monitors() {
       siteId: m.siteId, name: m.name, type: m.type,
       url: m.url || '', agentId: m.agentId || '',
       interval: m.interval, timeout: m.timeout,
-      expectedStatus: m.expectedStatus, errorPattern: m.errorPattern || ''
+      expectedStatus: m.expectedStatus, errorPattern: m.errorPattern || '',
+      loginUser: m.loginUser || '', loginPass: m.loginPass || ''
     });
     setShowModal(true);
   };
@@ -187,6 +189,7 @@ export default function Monitors() {
                   >
                     <option value="URL">URL 모니터</option>
                     <option value="HEARTBEAT">Heartbeat</option>
+                    <option value="GOOGLE_REMOTE">구글 원격 데스크톱</option>
                   </select>
                 </div>
               </div>
@@ -237,6 +240,36 @@ export default function Monitors() {
                       onChange={(e) => setForm({ ...form, errorPattern: e.target.value })}
                       placeholder="예: device appears to be offline"
                     />
+                  </div>
+                </>
+              ) : form.type === 'GOOGLE_REMOTE' ? (
+                <>
+                  <div>
+                    <label className="label">구글 계정 이메일</label>
+                    <input
+                      type="email"
+                      className="input"
+                      value={form.loginUser}
+                      onChange={(e) => setForm({ ...form, loginUser: e.target.value })}
+                      placeholder="example@gmail.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">구글 계정 비밀번호</label>
+                    <input
+                      type="password"
+                      className="input"
+                      value={form.loginPass}
+                      onChange={(e) => setForm({ ...form, loginPass: e.target.value })}
+                      placeholder="비밀번호"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">확인 주기(초)</label>
+                    <input type="number" className="input" value={form.interval} onChange={(e) => setForm({ ...form, interval: +e.target.value })} min={60} />
+                    <p className="text-xs text-gray-500 mt-1">구글 원격 데스크톱 확인은 최소 60초 이상 권장합니다.</p>
                   </div>
                 </>
               ) : (

@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const axios = require('axios');
+const { getGoogleRemoteStatus } = require('./googleRemoteScraper');
 
 let prisma, io;
 
@@ -113,6 +114,59 @@ async function checkHeartbeatMonitors() {
   }
 }
 
+async function checkGoogleRemoteMonitor(monitor) {
+  if (!monitor.loginUser || !monitor.loginPass) return;
+
+  const result = await getGoogleRemoteStatus(monitor.loginUser, monitor.loginPass);
+
+  await prisma.monitor.update({
+    where: { id: monitor.id },
+    data: {
+      lastChecked: new Date(),
+      status: result.success ? (result.devices.some(d => !d.online) ? 'DOWN' : 'UP') : 'UNKNOWN'
+    }
+  });
+
+  if (!result.success) {
+    console.error(`구글 원격 스크래핑 실패 [${monitor.name}]:`, result.error);
+    return;
+  }
+
+  for (const device of result.devices) {
+    const existingAlarm = await prisma.alarm.findFirst({
+      where: {
+        monitorId: monitor.id,
+        status: { in: ['ACTIVE', 'ACKNOWLEDGED'] },
+        message: { contains: device.name }
+      }
+    });
+
+    if (!device.online && !existingAlarm) {
+      const alarm = await prisma.alarm.create({
+        data: {
+          siteId: monitor.siteId,
+          monitorId: monitor.id,
+          type: 'GOOGLE_REMOTE_OFFLINE',
+          status: 'ACTIVE',
+          message: `[구글원격] ${device.name} 오프라인`,
+          detail: device.lastSeen || '마지막 접속 시간 불명'
+        },
+        include: {
+          site: { select: { id: true, name: true } },
+          monitor: { select: { id: true, name: true, type: true } }
+        }
+      });
+      io.emit('alarm:new', alarm);
+    } else if (device.online && existingAlarm) {
+      await prisma.alarm.updateMany({
+        where: { monitorId: monitor.id, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] }, message: { contains: device.name } },
+        data: { status: 'RESOLVED', resolvedAt: new Date() }
+      });
+      io.emit('alarm:resolved', { monitorId: monitor.id, monitorName: device.name });
+    }
+  }
+}
+
 async function runChecks() {
   try {
     const now = new Date();
@@ -124,6 +178,13 @@ async function runChecks() {
 
     await Promise.allSettled(toCheck.map(m => checkUrlMonitor(m, prisma, io)));
     await checkHeartbeatMonitors();
+
+    const googleMonitors = await prisma.monitor.findMany({ where: { type: 'GOOGLE_REMOTE' } });
+    const toCheckGoogle = googleMonitors.filter(m => {
+      if (!m.lastChecked) return true;
+      return (now - new Date(m.lastChecked)) / 1000 >= (m.interval || 300);
+    });
+    await Promise.allSettled(toCheckGoogle.map(m => checkGoogleRemoteMonitor(m)));
   } catch (err) {
     console.error('폴러 오류:', err);
   }

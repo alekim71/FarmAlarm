@@ -41,6 +41,8 @@ model Monitor {
   timeout        Int           @default(10)
   expectedStatus Int           @default(200)
   errorPattern   String?
+  loginUser      String?
+  loginPass      String?
   status         String        @default("UNKNOWN")
   lastChecked    DateTime?
   lastSeenAt     DateTime?

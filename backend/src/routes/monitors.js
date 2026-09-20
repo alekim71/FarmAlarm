@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const prisma = req.app.get('prisma');
-  const { siteId, name, type, url, agentId, interval, timeout, expectedStatus, errorPattern } = req.body;
+  const { siteId, name, type, url, agentId, interval, timeout, expectedStatus, errorPattern, loginUser, loginPass } = req.body;
   const monitor = await prisma.monitor.create({
     data: {
       siteId: parseInt(siteId),
@@ -27,7 +27,9 @@ router.post('/', async (req, res) => {
       interval: interval || 60,
       timeout: timeout || 10,
       expectedStatus: expectedStatus || 200,
-      errorPattern: errorPattern || null
+      errorPattern: errorPattern || null,
+      loginUser: loginUser || null,
+      loginPass: loginPass || null
     },
     include: { site: { select: { id: true, name: true } } }
   });
@@ -36,10 +38,10 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const prisma = req.app.get('prisma');
-  const { name, url, agentId, interval, timeout, expectedStatus, errorPattern } = req.body;
+  const { name, url, agentId, interval, timeout, expectedStatus, errorPattern, loginUser, loginPass } = req.body;
   const monitor = await prisma.monitor.update({
     where: { id: parseInt(req.params.id) },
-    data: { name, url, agentId, interval, timeout, expectedStatus, errorPattern },
+    data: { name, url, agentId, interval, timeout, expectedStatus, errorPattern, loginUser, loginPass },
     include: { site: { select: { id: true, name: true } } }
   });
   res.json(monitor);
