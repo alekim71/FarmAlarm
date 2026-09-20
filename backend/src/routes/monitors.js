@@ -1,6 +1,6 @@
 const express = require('express');
 const auth = require('../middleware/auth');
-const { checkUrlMonitor } = require('../services/poller');
+const { checkUrlMonitor, checkGoogleRemoteMonitor } = require('../services/poller');
 
 const router = express.Router();
 router.use(auth);
@@ -41,7 +41,15 @@ router.put('/:id', async (req, res) => {
   const { name, url, agentId, interval, timeout, expectedStatus, errorPattern, loginUser, loginPass } = req.body;
   const monitor = await prisma.monitor.update({
     where: { id: parseInt(req.params.id) },
-    data: { name, url, agentId, interval, timeout, expectedStatus, errorPattern, loginUser, loginPass },
+    data: {
+      name,
+      url: url || null,
+      agentId: agentId || null,
+      interval, timeout, expectedStatus,
+      errorPattern: errorPattern || null,
+      loginUser: loginUser || null,
+      loginPass: loginPass || null
+    },
     include: { site: { select: { id: true, name: true } } }
   });
   res.json(monitor);
@@ -60,9 +68,15 @@ router.post('/:id/check', async (req, res) => {
     where: { id: parseInt(req.params.id) }
   });
   if (!monitor) return res.status(404).json({ error: '모니터를 찾을 수 없습니다.' });
-  if (monitor.type !== 'URL') return res.status(400).json({ error: 'URL 모니터만 수동 확인이 가능합니다.' });
+  if (monitor.type !== 'URL' && monitor.type !== 'GOOGLE_REMOTE') {
+    return res.status(400).json({ error: 'URL 또는 구글 원격 모니터만 수동 확인이 가능합니다.' });
+  }
 
-  await checkUrlMonitor(monitor, prisma, io);
+  if (monitor.type === 'URL') {
+    await checkUrlMonitor(monitor, prisma, io);
+  } else {
+    await checkGoogleRemoteMonitor(monitor);
+  }
   const updated = await prisma.monitor.findUnique({ where: { id: monitor.id } });
   res.json(updated);
 });

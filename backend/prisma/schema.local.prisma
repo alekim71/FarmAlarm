@@ -43,6 +43,7 @@ model Monitor {
   errorPattern   String?
   loginUser      String?
   loginPass      String?
+  devices        String?
   status         String        @default("UNKNOWN")
   lastChecked    DateTime?
   lastSeenAt     DateTime?

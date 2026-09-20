@@ -124,18 +124,34 @@ export default function Monitors() {
                   <td className="px-5 py-3 font-medium text-gray-100">{m.name}</td>
                   <td className="px-5 py-3 text-gray-400">{m.site?.name || '-'}</td>
                   <td className="px-5 py-3"><StatusBadge status={m.type} /></td>
-                  <td className="px-5 py-3 text-gray-400 max-w-xs truncate">
-                    {m.type === 'URL' ? m.url : `Agent: ${m.agentId}`}
+                  <td className="px-5 py-3 text-gray-400 max-w-xs">
+                    {m.type === 'GOOGLE_REMOTE' ? (
+                      <div className="space-y-1">
+                        <div className="text-xs truncate">{m.loginUser || '-'}</div>
+                        {m.devices && JSON.parse(m.devices).map((d, i) => (
+                          <div key={i} className="flex items-center gap-1.5 text-xs">
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${d.online ? 'bg-emerald-400' : 'bg-rose-400 animate-pulse'}`} />
+                            <span className={d.online ? 'text-emerald-400' : 'text-rose-400'}>{d.name}</span>
+                            {!d.online && d.lastSeen && <span className="text-gray-600 truncate">({d.lastSeen})</span>}
+                          </div>
+                        ))}
+                        {!m.devices && <span className="text-xs text-gray-600">아직 확인 전</span>}
+                      </div>
+                    ) : m.type === 'URL' ? (
+                      <span className="truncate block">{m.url}</span>
+                    ) : (
+                      `Agent: ${m.agentId}`
+                    )}
                   </td>
                   <td className="px-5 py-3"><StatusBadge status={m.status} /></td>
                   <td className="px-5 py-3 text-gray-400">{timeAgo(m.lastChecked)}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2 justify-end">
-                      {m.type === 'URL' && (
+                      {(m.type === 'URL' || m.type === 'GOOGLE_REMOTE') && (
                         <button
                           onClick={() => handleCheck(m.id)}
                           disabled={checking === m.id}
-                          className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                          className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 whitespace-nowrap"
                         >
                           {checking === m.id ? '확인 중...' : '지금 확인'}
                         </button>

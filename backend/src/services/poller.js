@@ -123,7 +123,8 @@ async function checkGoogleRemoteMonitor(monitor) {
     where: { id: monitor.id },
     data: {
       lastChecked: new Date(),
-      status: result.success ? (result.devices.some(d => !d.online) ? 'DOWN' : 'UP') : 'UNKNOWN'
+      status: result.success ? (result.devices.some(d => !d.online) ? 'DOWN' : 'UP') : 'UNKNOWN',
+      devices: result.success ? JSON.stringify(result.devices) : null
     }
   });
 
@@ -197,4 +198,4 @@ function startPoller(prismaClient, socketIo) {
   console.log('폴러 시작 (1분 간격)');
 }
 
-module.exports = { startPoller, checkUrlMonitor };
+module.exports = { startPoller, checkUrlMonitor, checkGoogleRemoteMonitor };
