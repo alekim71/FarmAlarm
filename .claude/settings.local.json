@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:/programing/FarmAlarm/backend && npm install 2>&1 | tail -5)",
+      "Bash(cd C:/programing/FarmAlarm/frontend && npm install 2>&1 | tail -5)"
+    ]
+  }
+}

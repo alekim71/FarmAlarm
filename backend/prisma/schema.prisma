@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Site {
+  id        Int       @id @default(autoincrement())
+  name      String
+  location  String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  monitors  Monitor[]
+  alarms    Alarm[]
+  contacts  Contact[]
+}
+
+model Monitor {
+  id             Int           @id @default(autoincrement())
+  siteId         Int
+  site           Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String
+  type           MonitorType
+  url            String?
+  agentId        String?       @unique
+  interval       Int           @default(60)
+  timeout        Int           @default(10)
+  expectedStatus Int           @default(200)
+  errorPattern   String?
+  status         MonitorStatus @default(UNKNOWN)
+  lastChecked    DateTime?
+  lastSeenAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  alarms         Alarm[]
+}
+
+enum MonitorType {
+  URL
+  HEARTBEAT
+}
+
+enum MonitorStatus {
+  UP
+  DOWN
+  UNKNOWN
+}
+
+model Alarm {
+  id             Int         @id @default(autoincrement())
+  siteId         Int
+  site           Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  monitorId      Int?
+  monitor        Monitor?    @relation(fields: [monitorId], references: [id], onDelete: SetNull)
+  type           String
+  status         AlarmStatus @default(ACTIVE)
+  message        String
+  detail         String?
+  resolvedAt     DateTime?
+  acknowledgedAt DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+enum AlarmStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  siteId    Int?
+  site      Site?    @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  name      String
+  phone     String?
+  email     String?
+  role      String
+  priority  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
