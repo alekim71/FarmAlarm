@@ -10,6 +10,7 @@ import Monitors from './pages/Monitors';
 import Alarms from './pages/Alarms';
 import Contacts from './pages/Contacts';
 import Sites from './pages/Sites';
+import History from './pages/History';
 import Toast from './components/Toast';
 
 const BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="alarms" element={<Alarms />} />
           <Route path="contacts" element={<Contacts />} />
           <Route path="sites" element={<Sites />} />
+          <Route path="history" element={<History />} />
         </Route>
       </Routes>
     </BrowserRouter>
