@@ -257,6 +257,31 @@ export default function Monitors() {
                       placeholder="예: device appears to be offline"
                     />
                   </div>
+                  <div className="border-t border-surface-700 pt-3">
+                    <p className="text-xs text-gray-500 mb-2">로그인 필요 시 입력 (없으면 비워두세요)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label">아이디</label>
+                        <input
+                          type="text"
+                          className="input"
+                          value={form.loginUser}
+                          onChange={(e) => setForm({ ...form, loginUser: e.target.value })}
+                          placeholder="로그인 아이디"
+                        />
+                      </div>
+                      <div>
+                        <label className="label">비밀번호</label>
+                        <input
+                          type="password"
+                          className="input"
+                          value={form.loginPass}
+                          onChange={(e) => setForm({ ...form, loginPass: e.target.value })}
+                          placeholder="로그인 비밀번호"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </>
               ) : form.type === 'GOOGLE_REMOTE' ? (
                 <>

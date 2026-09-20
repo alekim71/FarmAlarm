@@ -1,8 +1,63 @@
 const cron = require('node-cron');
 const axios = require('axios');
+const puppeteer = require('puppeteer');
 const { getGoogleRemoteStatus } = require('./googleRemoteScraper');
 
 let prisma, io;
+
+async function checkUrlWithLogin(monitor) {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36');
+    await page.goto(monitor.url, { waitUntil: 'networkidle2', timeout: (monitor.timeout || 30) * 1000 });
+
+    // 아이디 입력란 찾기 (일반적인 선택자 순서대로 시도)
+    const userSelectors = ['input[name="user_id"]', 'input[name="userid"]', 'input[name="username"]', 'input[name="id"]', 'input[name="loginId"]', 'input[type="text"]'];
+    const passSelectors = ['input[name="user_pw"]', 'input[name="password"]', 'input[name="passwd"]', 'input[name="loginPw"]', 'input[type="password"]'];
+
+    let userField = null;
+    for (const sel of userSelectors) {
+      userField = await page.$(sel);
+      if (userField) break;
+    }
+    let passField = null;
+    for (const sel of passSelectors) {
+      passField = await page.$(sel);
+      if (passField) break;
+    }
+
+    if (!userField || !passField) {
+      return { status: 'DOWN', detail: '로그인 폼을 찾을 수 없음' };
+    }
+
+    await userField.type(monitor.loginUser, { delay: 30 });
+    await passField.type(monitor.loginPass, { delay: 30 });
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {}),
+      passField.press('Enter')
+    ]);
+
+    const currentUrl = page.url();
+    const content = await page.content();
+    // 여전히 로그인 페이지이거나 오류 메시지가 있으면 DOWN
+    const loginFailed = content.includes('비밀번호가 틀') || content.includes('아이디가 틀') ||
+      content.includes('로그인 실패') || content.includes('login failed') ||
+      content.includes('incorrect') || currentUrl === monitor.url;
+
+    if (loginFailed) {
+      return { status: 'DOWN', detail: '로그인 실패 또는 접속 불가' };
+    }
+    return { status: 'UP', detail: null };
+  } catch (error) {
+    return { status: 'DOWN', detail: error.message };
+  } finally {
+    await browser.close();
+  }
+}
 
 async function checkUrlMonitor(monitor, prismaClient, socketIo) {
   const _prisma = prismaClient || prisma;
@@ -12,20 +67,28 @@ async function checkUrlMonitor(monitor, prismaClient, socketIo) {
   let detail = null;
 
   try {
-    const response = await axios.get(monitor.url, {
-      timeout: (monitor.timeout || 10) * 1000,
-      validateStatus: () => true,
-      headers: { 'User-Agent': 'OmniAlarm-Monitor/1.0' }
-    });
+    if (monitor.loginUser && monitor.loginPass) {
+      // 로그인이 필요한 URL — Puppeteer 사용
+      const result = await checkUrlWithLogin(monitor);
+      newStatus = result.status;
+      detail = result.detail;
+    } else {
+      // 로그인 불필요 — 기존 axios 방식
+      const response = await axios.get(monitor.url, {
+        timeout: (monitor.timeout || 10) * 1000,
+        validateStatus: () => true,
+        headers: { 'User-Agent': 'OmniAlarm-Monitor/1.0' }
+      });
 
-    const statusOk = response.status === (monitor.expectedStatus || 200);
-    const bodyStr = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-    const patternOk = !monitor.errorPattern || !bodyStr.includes(monitor.errorPattern);
+      const statusOk = response.status === (monitor.expectedStatus || 200);
+      const bodyStr = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+      const patternOk = !monitor.errorPattern || !bodyStr.includes(monitor.errorPattern);
 
-    if (!statusOk || !patternOk) {
-      newStatus = 'DOWN';
-      detail = `HTTP ${response.status}`;
-      if (!patternOk) detail += ' · 오류 패턴 감지';
+      if (!statusOk || !patternOk) {
+        newStatus = 'DOWN';
+        detail = `HTTP ${response.status}`;
+        if (!patternOk) detail += ' · 오류 패턴 감지';
+      }
     }
   } catch (error) {
     newStatus = 'DOWN';
